@@ -1,4 +1,4 @@
-Tic Tac Toe
+# Tic Tac Toe #
 
 Used HTML, CSS, JavaScript to build it.
 
