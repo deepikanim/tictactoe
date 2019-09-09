@@ -26,13 +26,14 @@ $(function(){
        
     };
 
-    const computerChoice = () => emptyCells()[Math.floor(Math.random()*emptyCells().length)];
-    
+    const computerChoice = () => emptyCells()[Math.floor(Math.random()*emptyCells().length)];    
 
     const endGame = (winningSequence) => { 
-        if(winningSequence)
+        if(winningSequence){
             winningSequence.forEach(el => el.classList.add('winner'));
-        cells.unbind('click');
+        }
+       
+        cells.unbind('click'); 
     };
 
     const won = () =>{
@@ -52,30 +53,37 @@ $(function(){
     
     const computerTurn = () =>{
         cells.unbind('click');
+
         setTimeout(() => {
             takeTurn(computerChoice(), 'o');
 
-            if(!won() && emptyCells().length)
+            if(!won() && !draw()) 
             {
                 cells.bind('click',clickFunction);
-            }
-            else{
-                endGame(); //draw
             }         
         
         }, 1000);     
         
     }
+    
+    const draw = () => {
+        let isDraw = false;
+        if(!won() && !emptyCells().length)
+        {
+            isDraw = true;
+            endGame();
+            alert("draw!!");
+        }
+        return isDraw;
+    }
+
 
     const clickFunction = (event) => { 
         if(takeTurn(event.target, 'x'))
-        {     
-            if(!won() && emptyCells().length)
+        {  
+            if(!won() && !draw())   
             {
                 computerTurn();
-            }
-            else{
-                endGame(); //draw
             }
         }      
               
