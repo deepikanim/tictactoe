@@ -1,95 +1,293 @@
 $(function(){
-    const winningCombos = [
-        [0,1,2],
-        [3,4,5],
-        [6,7,8],
-        [0,3,6],
-        [1,4,7],
-        [2,5,8],
-        [0,4,8],
-        [2,4,6]
-    ];
-    const cells =  $("#container").children("div");
-    const emptyCells = () => cells.filter(':empty');
-    const areSame = (arr) => arr.every(item => item.innerText === arr[0].innerText && item.innerText !== ''); 
-  
-    const takeTurn = (element, letter) => {
-        if(!element.innerText)
+
+     /** @global */
+    window.size = 0;
+    window.ticTacToeMatrix  = [[]];
+    const emptyCells = () =>  $(".square").filter(':empty');
+    let result = {
+        WIN: 1,
+        DRAW: 2,
+        SIZE_ERROR: 3,
+        SQUARE_NON_EMPTY: 4
+    }
+
+    /**
+     * Invoked when "new game" button is clicked
+     */
+    $("#btn-game-start").click(function(){
+
+        initializeGameBoard();       
+
+        //validate input size. Valid input is a 'number' greater than or equal to 3 and less than or equal to 100
+        let inputSize = $("#size").val()
+        if(!inputSize || inputSize < 3 || inputSize > 100)
         {
-            element.innerText = letter;
+           showResult(result.SIZE_ERROR)
+            return;
+        }   
+        
+        window.size = inputSize;
+        window.ticTacToeMatrix  = [[]];
+
+        //add one div for each row
+        for (let i = 0; i < window.size; i++) {
+
+            let $row = $("<div />", {
+                class: 'divTableRow',
+            });
+
+            //add div with class=square for each cell in row. e.g. for 3*3 => rows = 3 and every row will have 3 cells.
+            for (let j = 0; j < window.size; j++) {
+
+                let $square = $("<div />", {
+                    class: 'square'
+                });
+
+                //add id, row, col attributes to each square div
+                $square.attr('id', "square" + i + j);
+                $square.attr('row', i);
+                $square.attr('col', j);
+
+                $row.append($square);
+            }
+            $("#container").append($row);
+        }
+
+       $(".square").bind("click", humanTurn);
+    });
+
+     /**
+     * Set game board to initial state
+     */
+    const initializeGameBoard = () => {
+        //hide any results shown from previous games
+        $("#result").empty(); 
+        $("#result").hide();    
+               
+        //remove contents of container div before adding any content
+        $("#container").empty();   
+    }
+  
+    /**
+     * make move for human or computer
+     * @param  {Number} row     row of square clicked
+     * @param  {Number} col     column of square clicked
+     * @param  {String} player  player's move i.e 'x' for human, 'o' for computer
+     * @return {Boolean}        true ==> win or draw
+     *                          false ==> continue playing
+     */
+    const move = (row, col, player) => {      
+
+        let winningSequence = [];
+
+        //if row does not exist in matrix yet then create one
+        if(!window.ticTacToeMatrix[row])
+        {
+            window.ticTacToeMatrix[row] = [];
+        }
+        window.ticTacToeMatrix[row][col] = player;
+ 
+        //check row
+        let win = true;
+        for(let i = 0; i < window.size; i++){
+
+            winningSequence.push($("#square" + row + i));
+
+            if(window.ticTacToeMatrix[row][i] !== player){
+                win = false;
+                break;
+            }
+        }
+
+        if(win) 
+        {
+            showResult(result.WIN, winningSequence, player);
+            return win;
+        }
+            
+        //check column
+        win = true;
+        winningSequence = [];
+        for(let i = 0; i < window.size; i++){
+            if(!window.ticTacToeMatrix[i])
+            {
+                win = false;
+                break;
+            }
+            winningSequence.push($("#square" + i + col));
+            if(window.ticTacToeMatrix[i][col] !== player){
+                win = false;
+                break;
+            }
+        }    
+       
+        if(win) 
+        {
+            showResult(result.WIN, winningSequence, player);
+            return win;
+        }
+    
+        //check back diagonal
+        win = true;
+        winningSequence = [];
+        for(let i = 0; i < window.size; i++){
+            if(!window.ticTacToeMatrix[i])
+            {
+                win = false;
+                break;
+            }
+            winningSequence.push($("#square" + i + i));
+            if(window.ticTacToeMatrix[i][i] !== player){
+                win = false;
+                break;
+            }
+        }    
+       
+        if(win) 
+        {
+            showResult(result.WIN, winningSequence, player);
+            return win;
+        }
+     
+        //check forward diagonal
+        win = true;
+        winningSequence = [];
+        for(let i = 0; i < window.size; i++){
+            if(!window.ticTacToeMatrix[i])
+            {
+                win = false;
+                break;
+            }
+            winningSequence.push($("#square" + i + (window.size - i - 1)));
+            if(window.ticTacToeMatrix[i][window.size - i - 1] !== player){
+                win = false;
+                break;
+            }
+        }     
+     
+        if(win) 
+        {
+            showResult(result.WIN, winningSequence, player);
+            return win;
+        }   
+        
+        //draw
+        if(emptyCells().length === 0)
+        {
+            showResult(result.DRAW);
             return true;
         }
-        else{
-            alert("the cell is not empty. try again.");
-            return false;
+        
+        return false;
+    }     
+
+    /**
+     * show game result or error message
+     * @param  {Enum}    type       result (WIN: 1, DRAW: 2, SIZE_ERROR: 3, SQUARE_NON_EMPTY: 4)
+     * @param  {Array}   sequence   array of ids of cells in winning sequence
+     * @param  {String}  player     player's move i.e 'x' for human, 'o' for computer
+     */
+    const showResult = (type, sequence, player) => {
+        switch(type) {
+            case result.WIN:
+                if(sequence && player){
+                    $.each(sequence, function(){ 
+                        $(this).css('color', 'red')
+                    });
+                    $("#result").html("<span class='resultText'>"+ player + " wins!!</span>");
+                }
+              break;
+
+            case result.DRAW:
+                $("#result").html("<span class='resultText'>draw!!</span>");
+              break;
+
+            case result.SIZE_ERROR:
+                $("#result").html("<span class='resultText'>enter size and try again!!</span>");
+                break;
+            case result.SQUARE_NON_EMPTY:
+                    $("#result").html("<span class='resultText'>non empty. try again!!</span>");
+                    break;
         }
-       
-    };
-
-    const computerChoice = () => emptyCells()[Math.floor(Math.random()*emptyCells().length)];    
-
-    const endGame = (winningSequence) => { 
-        if(winningSequence){
-            winningSequence.forEach(el => el.classList.add('winner'));
-        }
-       
-        cells.unbind('click'); 
-    };
-
-    const won = () =>{
-        let win = false;  
-    
-        winningCombos.forEach(c => {   
-            const sequence = [ cells[c[0]],  cells[c[1]],  cells[c[2]]];
-            if(areSame(sequence))
-            {
-                win = true;
-                endGame(sequence);
-            }
-        });
-    
-        return win;
+        $("#result").show();
+     
     }
+
+     /**
+     * Remove all event listeners from cells after win or draw. 
+     */
+    const endGame = () => {
+        $('.square').unbind("click");      
+    }
+
+    /**
+     * Randomly determines computer's selection
+     * @return {Element} any randomly chosen empty div
+     */
+    const computerChoice = function(){
+        let empty = emptyCells();
+        let random = Math.random()*emptyCells().length;
+        let index = Math.floor(random);
+        let choice = empty[index];    
+        return choice;
+    };
     
+    /**
+     * Makes computer's play
+     */
     const computerTurn = () =>{
-        cells.unbind('click');
+        //remove click event from all square divs to prevent human from playing
+        $('.square').unbind("click");
 
         setTimeout(() => {
-            takeTurn(computerChoice(), 'o');
-
-            if(!won() && !draw()) 
+            var square = computerChoice();
+            square.innerText = 'o';
+    
+            let row = Number($(square).attr('row'));
+            let col = Number($(square).attr('col'));
+            
+            if(!move(row, col, 'o')) 
             {
-                cells.bind('click',clickFunction);
-            }         
+                //enable click event to let human take turn
+                $('.square').bind("click", humanTurn);
+            }     
+            else{
+                endGame();
+            }    
         
         }, 1000);     
         
     }
-    
-    const draw = () => {
-        let isDraw = false;
-        if(!won() && !emptyCells().length)
+
+    /**
+     * Makes human's play
+     * @param  {Event} event click event from the div clicked
+     */
+    const humanTurn = (event) => { 
+        $("#result").empty(); 
+        $("#result").hide();  
+
+        var square = event.target;
+
+        //if the square clicked already has an 'x' then show error message
+        if(square.innerText)
         {
-            isDraw = true;
-            endGame();
-            alert("draw!!");
+            showResult(result.SQUARE_NON_EMPTY);
+            return;
         }
-        return isDraw;
-    }
+        square.innerText = 'x';
 
+        let row = Number($(square).attr('row'));
+        let col = Number($(square).attr('col'));
 
-    const clickFunction = (event) => { 
-        if(takeTurn(event.target, 'x'))
-        {  
-            if(!won() && !draw())   
-            {
-                computerTurn();
-            }
-        }      
-              
+        if(!move(row, col, 'x')){
+            computerTurn();
+        }
+        else{
+            endGame();
+        }              
     };
        
-    $("#container").children("div").on("click", clickFunction);     
  
 });
 
